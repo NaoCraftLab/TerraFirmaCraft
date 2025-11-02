@@ -75,7 +75,7 @@
       "anchor": "gearbox",
       "recipe": "tfc:crafting/wood/gear_box/oak",
       "title": "Коробка передач",
-      "text": "$(thing)Коробки передач$() — это способ изменения $(thing)направления$() энергии вращения с использованием $(l:https://en.wikipedia.org/wiki/Gear)шестерней$(). Они также полезны для соединения длинных цепочек $(l:mechanics/mechanical_power#axle)осей$() вместе без поломки."
+      "text": "$(thing)Коробки передач$() — это способ изменения $(thing)направления$() энергии вращения с использованием $(l:https://ru.wikipedia.org/wiki/%D0%97%D1%83%D0%B1%D1%87%D0%B0%D1%82%D0%BE%D0%B5_%D0%BA%D0%BE%D0%BB%D0%B5%D1%81%D0%BE)шестерней$(). Они также полезны для соединения длинных цепочек $(l:mechanics/mechanical_power#axle)осей$() вместе без поломки."
     },
     {
       "type": "patchouli:text",
