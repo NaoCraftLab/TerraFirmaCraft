@@ -15,6 +15,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -31,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraft.world.phys.Vec2;
 import org.jetbrains.annotations.Nullable;
 
 import net.dries007.tfc.common.TFCPoiTypes;
@@ -42,9 +43,9 @@ import net.dries007.tfc.common.blocks.SnowPileBlock;
 import net.dries007.tfc.common.blocks.TFCBlocks;
 import net.dries007.tfc.common.blocks.ThinSpikeBlock;
 import net.dries007.tfc.common.blocks.plant.KrummholzBlock;
+import net.dries007.tfc.config.TFCConfig;
 import net.dries007.tfc.mixin.accessor.PoiSectionAccessor;
 import net.dries007.tfc.mixin.accessor.SectionStorageAccessor;
-import net.dries007.tfc.network.ChunkRainfallPacket;
 import net.dries007.tfc.util.Helpers;
 import net.dries007.tfc.util.calendar.Calendars;
 import net.dries007.tfc.util.climate.ClimateModel;
@@ -63,13 +64,16 @@ public final class WeatherHelpers
     private static final int TICKS_PER_SNOW_MELT_PER_SNOW_ACCUMULATION = 3;
     private static final int TICKS_PER_SNOW_MELT = TICKS_PER_SNOW_ACCUMULATION * TICKS_PER_SNOW_MELT_PER_SNOW_ACCUMULATION;
 
+    private static final int WIND_KMS_FACTOR = 115;
+    private static final int WIND_MS_FACTOR = 32;
+
     // For fast forwarding, the number of "fast-forward" ticks that should be simulated for a given hour of either estimated
     // melting, or estimated snow accumulation.
-    private static final int UPDATES_PER_SNOW_MELT_HOUR = 1 + 1_000 / TICKS_PER_SNOW_MELT;
-    private static final int UPDATES_PER_SNOW_ACCUMULATION_HOUR = 1 + 1_000 / TICKS_PER_SNOW_ACCUMULATION;
+    private static final int UPDATES_PER_SNOW_MELT_SKIP = 1 + 4_000 / TICKS_PER_SNOW_MELT;
+    private static final int UPDATES_PER_SNOW_ACCUMULATION_SKIP = 1 + 4_000 / TICKS_PER_SNOW_ACCUMULATION;
 
     // The maximum number of single tick updates that can be scheduled to happen
-    private static final int MAX_UPDATES_PER_TICK = 48;
+    private static final int MAX_UPDATES_PER_TICK = TFCConfig.SERVER.snowMaxAccumulationOnUpdate.get();
 
     /**
      * Replaces a call to {@link Biome#getPrecipitationAt(BlockPos)} with one that is aware of both the local climate,
@@ -215,65 +219,57 @@ public final class WeatherHelpers
         final ChunkData data = ChunkData.get(chunk);
         final long currentTick = Calendars.SERVER.getTicks();
         final long currentCalendarTick = Calendars.SERVER.getCalendarTicks();
-        final long timeSinceTick = currentTick - data.getLastRandomTick();
-        final long timeSinceLastRainTick = currentTick - data.getLastRainTick();
+        final long lastRandomTick = data.getLastRandomTick();
+        final long timeSinceTick = currentTick - lastRandomTick;
 
         final ChunkPos chunkPos = chunk.getPos();
-        final BlockPos surfacePos = getRandomSurfacePos(level, chunkPos);
-        final float rainfall = model.getRainfall(level, surfacePos, data.getLastRandomTick(), currentTick, Calendars.SERVER.getCalendarDaysInMonth());
+        final BlockPos surfacePos = getSequentialSurfacePos(level, chunkPos, chunk, data, false);
+        final float rainfall = model.getRainfall(level, surfacePos, lastRandomTick, currentTick, Calendars.SERVER.getCalendarDaysInMonth());
         final int daysInMonth = Calendars.SERVER.getCalendarDaysInMonth();
 
-        // Update rainfall accumulation for this chunk periodically
-        if (timeSinceLastRainTick > 1_000)
-        {
-            final long firstCalendarTick = Calendars.SERVER.getCalendarTicks() + Calendars.SERVER.getFixedCalendarTicksFromTick(data.getLastRainTick() - Calendars.SERVER.getTicks());
-            final long secondCalendarTick = Calendars.SERVER.getCalendarTicks();
-
-            final float rainfallForRainTick = model.getRainfall(level, surfacePos, firstCalendarTick, secondCalendarTick, daysInMonth);
-            data.addAccumulatedRainfall(chunk, model.getDeltaRainInMillimeters(level, surfacePos, firstCalendarTick, secondCalendarTick, rainfallForRainTick, Calendars.SERVER.getCalendarTicksInYear(), Calendars.SERVER.getCalendarDaysInMonth()));
-            data.setLastRainTick(chunk, currentTick);
-            PacketDistributor.sendToPlayersTrackingChunk(level, chunkPos, new ChunkRainfallPacket(chunkPos, data.getAccumulatedRainfall()));
-        }
-
-        if (timeSinceTick > 1_000)
+        if (timeSinceTick > 4_000)
         {
             // We have not ticked this chunk in a short while, so run catch-up ticks to see if we missed anything
             // First, we need to check for what we might've missed
 
-            // Iterates for maximum of two days of weather
-            long calendarTick = currentCalendarTick - Math.min(48_000, timeSinceTick);
+            // Iterates for maximum of one month of weather
+            long calendarTick = currentCalendarTick - Math.min(192_000, timeSinceTick);
             int netChangeInSnow = 0; // >0 indicates melting, <0 indicates freezing
 
             while (calendarTick < currentCalendarTick)
             {
-                calendarTick += 1_000;
+                calendarTick += 4_000;
                 final float estimatedTemperature = model.getTemperature(level, surfacePos, calendarTick, daysInMonth);
                 if (estimatedTemperature > 2f)
                 {
-                    netChangeInSnow = Math.max(netChangeInSnow - UPDATES_PER_SNOW_MELT_HOUR, -MAX_UPDATES_PER_TICK);
+                    netChangeInSnow = netChangeInSnow - UPDATES_PER_SNOW_MELT_SKIP;
                 }
                 else if (estimatedTemperature < -2f && isPrecipitating(model.getRain(calendarTick), rainfall))
                 {
-                    netChangeInSnow = Math.min(netChangeInSnow + UPDATES_PER_SNOW_ACCUMULATION_HOUR, MAX_UPDATES_PER_TICK);
+                    // Reduce amount of snow accumulated if near the temperature threshold
+                    final float fuzz = Mth.clampedMap(estimatedTemperature, -2f, -12f, 0.5f, 1f);
+                    netChangeInSnow = netChangeInSnow + (int) (UPDATES_PER_SNOW_ACCUMULATION_SKIP * fuzz);
                 }
             }
 
             if (netChangeInSnow > 0)
             {
-                // First, if we're performing a large number of updates, we want to first count the amount of snow in the chunk,
+                // Then, if we're performing a large number of updates, we want to first count the amount of snow in the chunk,
                 // and only do updates if it's between a threshold
-                netChangeInSnow = Math.min(64 - countExistingSnowInChunk(level, chunkPos), netChangeInSnow);
+                netChangeInSnow = Math.min(MAX_UPDATES_PER_TICK, Math.min(256 - countExistingSnowInChunk(level, chunkPos), netChangeInSnow));
+
                 for (int i = 0; i < netChangeInSnow; i++)
                 {
-                    handleSnowAccumulation(level, getRandomSurfacePos(level, chunkPos));
+                    handleSnowAccumulation(level, getSequentialSurfacePos(level, chunkPos, chunk, data, true));
                 }
             }
             else if (netChangeInSnow < 0)
             {
-                // If it has been more than two days since the chunk was ticked,
+                // If it has been more than a month since the chunk was ticked,
                 // apply a multiplier to the melt based on how long it has been
-                final int meltFactor = (int) (Math.max(timeSinceTick / 48_000, 1));
-                handleSnowMelting(level, chunkPos, -netChangeInSnow * meltFactor);
+                final int meltFactor = (int) (Math.max(timeSinceTick / 192_000, 1));
+                netChangeInSnow = Math.min(MAX_UPDATES_PER_TICK, -netChangeInSnow * meltFactor);
+                handleSnowMelting(level, chunkPos, netChangeInSnow);
             }
         }
         else if (level.random.nextInt(TICKS_PER_SNOW_ACCUMULATION) == 0)
@@ -289,16 +285,22 @@ public final class WeatherHelpers
             {
                 // Trigger accumulation
                 handleSnowAccumulation(level, surfacePos);
+                // We delay iterating the position until we know whether snow will actually get placed
+                data.iterateSnowPos(chunk);
             }
         }
 
         data.setLastRandomTick(chunk, currentTick);
     }
 
-    private static BlockPos getRandomSurfacePos(ServerLevel level, ChunkPos chunkPos)
+    private static BlockPos getSequentialSurfacePos(ServerLevel level, ChunkPos chunkPos, ChunkAccess access, ChunkData data, boolean updateChunk)
     {
-        final BlockPos randomPos = level.getBlockRandomPos(chunkPos.getMinBlockX(), 0, chunkPos.getMinBlockZ(), 15);
-        return level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, randomPos);
+        final BlockPos pos = data.getNextSnowPos(chunkPos);
+        if (updateChunk)
+        {
+            data.iterateSnowPos(access);
+        }
+        return level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pos);
     }
 
     private static int countExistingSnowInChunk(ServerLevel level, ChunkPos chunkPos)
@@ -600,4 +602,166 @@ public final class WeatherHelpers
     {
         return state.getBlock() == Blocks.ICE || state.getBlock() == TFCBlocks.ICE_PILE.get() || state.getBlock() == TFCBlocks.SEA_ICE.get();
     }
+
+    /**
+     * Converts wind speed to M/s
+     */
+    public static float windMS(Vec2 wind)
+    {
+        return wind.length() * WIND_MS_FACTOR;
+    }
+
+    /**
+     * Converts wind speed to M/tick (useful for accurately affecting entity/particle velocity)
+     */
+    public static float windMT(Vec2 wind)
+    {
+        return wind.length() * WIND_MS_FACTOR / 20;
+    }
+
+    /**
+     * Converts wind speed to KM/h
+     */
+    public static float windKMH(Vec2 wind)
+    {
+        return wind.length() * WIND_KMS_FACTOR;
+    }
+
+    /**
+     * Wraps and makes a wind angle positive, implicit that with the resulting angle, north is 0 degrees
+     */
+    public static float wrappedPositiveAngle(float angleIn)
+    {
+        float angle = angleIn < 0
+            ? angleIn += Mth.TWO_PI
+            : angleIn;
+        // rotate so North is signal 0/15
+        angle += Mth.PI / 2;
+        // wrap
+        if (angle > Mth.TWO_PI)
+        {
+            angle -= Mth.TWO_PI;
+        }
+        return angle;
+    }
+
+    /**
+     * Table for getting the wind direction as a cardinal, represented as an int
+     * Should be used in all cases to ensure consistency between any cardinal direction representation of a wind angle
+     */
+    public static int granularCardinalIntFromAngle(float angle)
+    {
+        angle *= Mth.RAD_TO_DEG;
+        float m = 11.25f;
+
+        // implicit north
+        int direction = 0;
+
+        if (angle <= 22.5 + m && angle >= 22.5 - m)
+        {
+            // north by northeast
+            direction = 1;
+        }
+        else if (angle <= 45 + m && angle >= 45 - m)
+        {
+            // northeast
+            direction = 2;
+        }
+        else if (angle <= 67.5 + m && angle >= 67.5 - m)
+        {
+            // east by northeast
+            direction = 3;
+        }
+        else if (angle <= 90 + m && angle >= 90 - m)
+        {
+            // east
+            direction = 4;
+        }
+        else if (angle <= 112.5 + m && angle >= 112.5 - m)
+        {
+            // east by southeast
+            direction = 5;
+        }
+        else if (angle <= 135 + m && angle >= 135 - m)
+        {
+            // southeast
+            direction = 6;
+        }
+        else if (angle <= 157.5 + m && angle >= 157.5 - m)
+        {
+            // south by southeast
+            direction = 7;
+        }
+        else if (angle <= 180 + m && angle >= 180 - m)
+        {
+            // south
+            direction = 8;
+        }
+        else if (angle <= 202.5 + m && angle >= 202.5 - m)
+        {
+            // south by southwest
+            direction = 9;
+        }
+        else if (angle <= 225 + m && angle >= 225 - m)
+        {
+            // southwest
+            direction = 10;
+        }
+        else if (angle <= 247.5 + m && angle >= 247.5 - m)
+        {
+            // west by southwest
+            direction = 11;
+        }
+        else if (angle <= 270 + m && angle >= 270 - m)
+        {
+            // west
+            direction = 12;
+        }
+        else if (angle <= 292.5 + m && angle >= 292.5 - m)
+        {
+            // west by northwest
+            direction = 13;
+        }
+        else if (angle <= 315 + m && angle >= 315 - m)
+        {
+            // northwest
+            direction = 14;
+        }
+        else if (angle <= 337.5 + m && angle >= 337.5 - m)
+        {
+            // north by northwest
+            direction = 15;
+        }
+
+        return direction;
+    }
+
+    /**
+     * Returns the appropriate cardinal direction translation for any wind angle
+     */
+    public static Component windGranularCardinal(Vec2 wind)
+    {
+        final float angle = wrappedPositiveAngle((float) Mth.atan2(wind.y, wind.x));
+        int direction = granularCardinalIntFromAngle(angle);
+        switch (direction) {
+            case 0 -> {return Helpers.translateEnum(Direction.NORTH);}
+            case 1 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.NORTH), Component.translatable("tfc.direction.cardinal_northeast"));}
+            case 2 -> {return Component.translatable("tfc.direction.cardinal_northeast");}
+            case 3 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.EAST), Component.translatable("tfc.direction.cardinal_northeast"));}
+            case 4 -> {return Helpers.translateEnum(Direction.EAST);}
+            case 5 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.EAST), Component.translatable("tfc.direction.cardinal_southeast"));}
+            case 6 -> {return Component.translatable("tfc.direction.cardinal_southeast");}
+            case 7 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.SOUTH), Component.translatable("tfc.direction.cardinal_southeast"));}
+            case 8 -> {return Helpers.translateEnum(Direction.SOUTH);}
+            case 9 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.SOUTH), Component.translatable("tfc.direction.cardinal_southwest"));}
+            case 10 -> {return Component.translatable("tfc.direction.cardinal_southwest");}
+            case 11 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.WEST), Component.translatable("tfc.direction.cardinal_southwest"));}
+            case 12 -> {return Helpers.translateEnum(Direction.WEST);}
+            case 13 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.WEST), Component.translatable("tfc.direction.cardinal_northwest"));}
+            case 14 -> {return Component.translatable("tfc.direction.cardinal_northwest");}
+            case 15 -> {return Component.translatable("tfc.direction.cardinal_granular", Helpers.translateEnum(Direction.NORTH), Component.translatable("tfc.direction.cardinal_northwest"));}
+        }
+        return Component.empty();
+    }
+
 }

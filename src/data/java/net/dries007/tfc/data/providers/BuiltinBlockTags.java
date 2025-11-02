@@ -189,7 +189,12 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
                 TFCBlocks.SPRUCE_KRUMMHOLZ,
                 TFCBlocks.WHITE_CEDAR_KRUMMHOLZ,
                 TFCBlocks.BELLOWS,
-                TFCBlocks.BARREL_RACK
+                TFCBlocks.BARREL_RACK,
+                TFCBlocks.MELON,
+                TFCBlocks.PUMPKIN,
+                TFCBlocks.ROTTEN_MELON,
+                TFCBlocks.ROTTEN_PUMPKIN,
+                TFCBlocks.JACK_O_LANTERN
             );
         // Note, our hoes do not use this tag, but instead we co-opt the values as a 'sharp tool'
         tag(BlockTags.MINEABLE_WITH_HOE)
@@ -214,12 +219,7 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
                 TFCBlocks.DEAD_CANE,
                 TFCBlocks.THATCH,
                 TFCBlocks.THATCH_BED,
-                TFCBlocks.TREE_ROOTS,
-                TFCBlocks.MELON,
-                TFCBlocks.PUMPKIN,
-                TFCBlocks.ROTTEN_MELON,
-                TFCBlocks.ROTTEN_PUMPKIN,
-                TFCBlocks.JACK_O_LANTERN
+                TFCBlocks.TREE_ROOTS
             );
         tag(BlockTags.MINEABLE_WITH_PICKAXE)
             .add2(TFCBlocks.SANDSTONE)
@@ -246,6 +246,12 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
             .add(TFCBlocks.FIRE_BRICK_SHELF)
             .add(TFCBlocks.FIREPROOF_DOOR)
             .add(TFCBlocks.FIREBOX)
+            .add(TFCBlocks.VANE)
+            .add(TFCBlocks.ANEMOMETER)
+            .add(TFCBlocks.STOVE)
+            .add(TFCBlocks.STOVE_POT)
+            .add(TFCBlocks.STOVE)
+            .add(TFCBlocks.STOVE_POT)
             .add(
                 TFCBlocks.ICICLE,
                 TFCBlocks.SEA_ICE,
@@ -276,7 +282,9 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
                 TFCBlocks.LARGE_VESSEL
             )
             .add(TFCBlocks.MOLD_TABLE)
-            .add(TFCBlocks.CHANNEL);
+            .add(TFCBlocks.CHANNEL)
+            .add(TFCBlocks.CALENDAR_CLOCK)
+            .add(TFCBlocks.THERMOMETER);
         tag(BlockTags.MINEABLE_WITH_SHOVEL)
             .add2(TFCBlocks.SOIL)
             .add(TFCBlocks.SAND)
@@ -470,8 +478,16 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
             .add(TFCBlocks.METALS, Metal.BlockType.OXIDIZED_GRATE)
             .add(TFCBlocks.METALS, Metal.BlockType.WEATHERED_GRATE);
         tag(SCRAPING_SURFACE).addTag(BlockTags.LOGS);
-        tag(GLASS_POURING_TABLE).add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.BLOCK));
-        tag(GLASS_BASIN_BLOCKS).add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.BLOCK));
+        tag(GLASS_POURING_TABLE)
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.BLOCK))
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.EXPOSED_BLOCK))
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.WEATHERED_BLOCK))
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.OXIDIZED_BLOCK));
+        tag(GLASS_BASIN_BLOCKS)
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.BLOCK))
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.EXPOSED_BLOCK))
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.WEATHERED_BLOCK))
+            .add(TFCBlocks.METALS.get(Metal.BRASS).get(Metal.BlockType.OXIDIZED_BLOCK));
         tag(THATCH_BED_THATCH).add(TFCBlocks.THATCH);
         tag(FRUIT_TREE_BRANCH)
             .add(TFCBlocks.BANANA_PLANT, TFCBlocks.DEAD_BANANA_PLANT)
@@ -485,6 +501,7 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
         tag(KELP_BRANCH).add(TFCBlocks.PLANTS.get(Plant.GIANT_KELP_PLANT));
         tag(BAMBOO).add(TFCBlocks.PLANTS.get(Plant.GOLDEN_BAMBOO)).add(Blocks.BAMBOO);
         tag(BAMBOO_SAPLING).add(TFCBlocks.PLANTS.get(Plant.GOLDEN_BAMBOO_SAPLING)).add(Blocks.BAMBOO_SAPLING);
+        tag(BlockTags.BAMBOO_BLOCKS).add(TFCBlocks.GOLDEN_BAMBOO_BLOCK);
         tag(BlockTags.BAMBOO_PLANTABLE_ON).add(TFCBlocks.PLANTS.get(Plant.GOLDEN_BAMBOO_SAPLING), TFCBlocks.PLANTS.get(Plant.GOLDEN_BAMBOO)).remove(Tags.Blocks.SANDS);
         tag(LIVING_SPREADING_BUSHES)
             .add(TFCBlocks.SPREADING_BUSHES)
@@ -573,11 +590,11 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
         tag(MINEABLE_WITH_HAMMER).addTag(BlockTags.LOGS);
         tag(MINEABLE_WITH_KNIFE).addTag(BlockTags.MINEABLE_WITH_HOE);
         tag(MINEABLE_WITH_SCYTHE).addTag(BlockTags.MINEABLE_WITH_HOE);
+        tag(MINEABLE_WITH_HOE).addTag(BlockTags.MINEABLE_WITH_HOE);
         tag(MINEABLE_WITH_GLASS_SAW)
             .addTags(Tags.Blocks.GLASS_BLOCKS, Tags.Blocks.GLASS_PANES)
             .add(TFCBlocks.COLORED_POURED_GLASS)
             .add(TFCBlocks.POURED_GLASS);
-        tag(MINEABLE_WITH_HOE); // Empty
 
         tag(PROSPECTABLE).addTags(Tags.Blocks.ORES);
 
@@ -737,10 +754,18 @@ public class BuiltinBlockTags extends TagsProvider<Block> implements Accessors
             TFCBlocks.GROUNDCOVER.get(GroundcoverBlockType.MOLLUSK),
             TFCBlocks.GROUNDCOVER.get(GroundcoverBlockType.MUSSEL),
             TFCBlocks.GROUNDCOVER.get(GroundcoverBlockType.SEA_URCHIN));
+        tag(CANCELS_FLOOD_FILL_LAKE)
+            .addTag(BAMBOO);
         tag(KAOLIN_CLAY_REPLACEABLE).addTags(DIRT, Tags.Blocks.STONES, Tags.Blocks.GRAVELS);
         tag(KAOLIN_CLAY_REPLACEABLE)
             .addTags(DIRT, Tags.Blocks.GRAVELS)
             .add(Blocks.SNOW_BLOCK);
+        tag(THERMOMETER_READABLE)
+            .add(TFCBlocks.STOVE_POT)
+            .add(TFCBlocks.STOVE)
+            .add(TFCBlocks.FIREBOX)
+            .add(TFCBlocks.BLAST_FURNACE)
+            .add(TFCBlocks.CRUCIBLE);
         tag(SEA_STACK_ROCKS).add(
             TFCBlocks.ROCK_BLOCKS.get(Rock.BASALT).get(Rock.BlockType.HARDENED),
             TFCBlocks.ROCK_BLOCKS.get(Rock.LIMESTONE).get(Rock.BlockType.HARDENED),

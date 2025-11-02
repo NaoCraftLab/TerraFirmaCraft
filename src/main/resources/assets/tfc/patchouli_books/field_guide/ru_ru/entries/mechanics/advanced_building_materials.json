@@ -16,14 +16,14 @@
     {
       "type": "patchouli:text",
       "anchor": "alabaster",
-      "text": "Алебастр — это строительный блок, изготовленный из $(l:the_world/ores_and_minerals#gypsum)гипса$(). Алебастр можно сделать непосредственно из $(l:the_world/ores_and_minerals#gypsum)гипса$(), однако это неэффективно. Для повышения выхода запечатайте некоторое количество $(l:the_world/ores_and_minerals#gypsum)гипса$() и 100 мБ $(thing)известковой воды$() в бочке.",
+      "text": "Штукатурка — это строительный блок, изготовленный из $(l:the_world/ores_and_minerals#gypsum)гипса$(). Алебастр можно сделать непосредственно из $(l:the_world/ores_and_minerals#gypsum)гипса$(), однако это неэффективно. Для повышения выхода запечатайте некоторое количество $(l:the_world/ores_and_minerals#gypsum)гипса$() и 100 мБ $(thing)известковой воды$() в бочке.",
       "title": "Алебастр"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "tfc:crafting/alabaster_brick",
       "recipe2": "tfc:crafting/alabaster/bricks",
-      "title": "Кирпичи из алебастра"
+      "title": "Алебастровые кирпичи"
     },
     {
       "type": "patchouli:text",

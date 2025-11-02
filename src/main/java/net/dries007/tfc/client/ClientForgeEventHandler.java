@@ -95,7 +95,6 @@ import net.dries007.tfc.network.PlaceBlockSpecialPacket;
 import net.dries007.tfc.network.RequestClimateModelPacket;
 import net.dries007.tfc.network.StackFoodPacket;
 import net.dries007.tfc.network.SwitchInventoryTabPacket;
-import net.dries007.tfc.util.EnvironmentHelpers;
 import net.dries007.tfc.util.Helpers;
 import net.dries007.tfc.util.PhysicalDamageType;
 import net.dries007.tfc.util.calendar.Calendars;
@@ -108,6 +107,7 @@ import net.dries007.tfc.util.tooltip.Tooltips;
 import net.dries007.tfc.world.ChunkGeneratorExtension;
 import net.dries007.tfc.world.chunkdata.ChunkData;
 
+import static net.dries007.tfc.util.tracker.WeatherHelpers.*;
 import static net.minecraft.ChatFormatting.*;
 
 public class ClientForgeEventHandler
@@ -172,11 +172,11 @@ public class ClientForgeEventHandler
                 ));
                 final Vec2 wind = ClimateRenderCache.INSTANCE.getWind();
                 tooltip.add(Component.translatable("tfc.tooltip.wind_speed",
-                    Mth.floor(320 * wind.length()),
-                    String.format("%.0f", Mth.abs(wind.x * 100)),
-                    Helpers.translateEnum(wind.x > 0 ? Direction.EAST : Direction.WEST),
-                    String.format("%.0f", Mth.abs(wind.y * 100)),
-                    Helpers.translateEnum(wind.y > 0 ? Direction.SOUTH : Direction.NORTH))
+                        Mth.floor(windKMH(wind)),
+                        String.format("%.0f", Mth.abs(wind.x * 100)),
+                        Helpers.translateEnum(wind.x > 0 ? Direction.EAST : Direction.WEST),
+                        String.format("%.0f", Mth.abs(wind.y * 100)),
+                        Helpers.translateEnum(wind.y > 0 ? Direction.SOUTH : Direction.NORTH))
                     .getString());
 
                 final ChunkData data = ChunkData.get(mc.level, pos);
@@ -416,7 +416,7 @@ public class ClientForgeEventHandler
             final Vec2 wind = ClimateRenderCache.INSTANCE.getWind();
             final float windStrength = wind.length();
             int count = 0;
-            if (windStrength > 0.3f)
+            if (windStrength > 0.07f) // spawn wind particles starting at ~8 kmh
             {
                 count = (int) (windStrength * 8);
             }
@@ -428,15 +428,20 @@ public class ClientForgeEventHandler
                 return;
             final double xBias = wind.x > 0 ? 6 : -6;
             final double zBias = wind.y > 0 ? 6 : -6;
-            final ParticleOptions particle = ClimateRenderCache.INSTANCE.getTemperature() < 0f && level.getRainLevel(0) > 0 ? TFCParticles.SNOWFLAKE.get() : TFCParticles.WIND.get();
-            for (int i = 0; i < count; i++)
+
+            // don't spawn wind particles in rain
+            if (!(ClimateRenderCache.INSTANCE.getTemperature() > 0f && level.getRainLevel(0) > 0))
             {
-                final double x = pos.getX() + Mth.nextDouble(level.random, -12 - xBias, 12 - xBias);
-                final double y = pos.getY() + Mth.nextDouble(level.random, -1, 6);
-                final double z = pos.getZ() + Mth.nextDouble(level.random, -12 - zBias, 12 - zBias);
-                if (level.canSeeSky(BlockPos.containing(x, y, z)))
+                final ParticleOptions particle = ClimateRenderCache.INSTANCE.getTemperature() < 0f && level.getRainLevel(0) > 0 ? TFCParticles.SNOWFLAKE.get() : TFCParticles.WIND.get();
+                for (int i = 0; i < count; i++)
                 {
-                    level.addParticle(particle, x, y, z, 0D, 0D, 0D);
+                    final double x = pos.getX() + Mth.nextDouble(level.random, -12 - xBias, 12 - xBias);
+                    final double y = pos.getY() + Mth.nextDouble(level.random, -1, 6);
+                    final double z = pos.getZ() + Mth.nextDouble(level.random, -12 - zBias, 12 - zBias);
+                    if (level.canSeeSky(BlockPos.containing(x, y, z)))
+                    {
+                        level.addParticle(particle, x, y, z, 0D, 0D, 0D);
+                    }
                 }
             }
         }

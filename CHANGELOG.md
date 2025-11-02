@@ -1,7 +1,32 @@
 ### Changes
-- Modified prickly pear textures
+- Visual rework to nutrition, climate, and calendar screens
+- Added Precision Clock
+  - Outputs an analog redstone signal based on the month or the hour
+- Added Weather Vane
+  - Outputs an analog redstone signal based on the wind direction
+- Added Anemometer
+  - Outputs an analog redstone signal based on the wind speed
+- Added Thermometer
+  - Outputs an analog redstone signal based on the ambient temperature, or the temperature of a device
+- Shoveling snow no longer drops snowballs
+- Add barrel recipe for mass crafting of mud from dirt
+- Rain and snow are now pushed by the wind
+  - Both weather types are angled by the wind
+  - Snow is sped up by the wind
+
 ### Bug Fixes
-- Fix crash when trying to get weather on SP shutdown (closes #3144 closes #3165)
-- Fixed calendar still ticking when the game is tick-frozen
-- Fixed milking animals filling full stacks of buckets (closes #3160)
-- Fixed pickling (closes #3147)
+- Fix invalid item placement below shelves (Closes #3154)
+- Fix broken windmill rotation rendering
+- Prevent invalid item placement on stairs
+- Fix bows not being craftable
+- Fixed a visual big in firepit textures
+- Fixed a clay dupe exploit via bowl uncrafting (Closes #3212)
+- Re-add recipes to recycle cobble slabs/stairs/walls into loose rocks (Closes #3220)
+- Fix saws being able to fell trees (Closes #3215)
+- Prevent players from eating whole melons and pumpkins (Closes #3211)
+- Fix washing ceramic bowls returning wooden bowls
+- Fix glassworking recipes giving invalid item stacks and bricking servers (Closes #3214)
+- Fix crops that grow with sticks dropping extra items on death
+- Allow whole pumpkins and melons to be composted
+- Fix Barrels deleting their contents upon placement into a barrel rack (Closes #3178)
+- Fix Fireboxes playing lit sounds while unlit

@@ -113,12 +113,15 @@ public class TFCBlockStateProperties
     public static final BooleanProperty RIGHT = BooleanProperty.create("right");
     public static final BooleanProperty BOTTOM = BooleanProperty.create("bottom");
     public static final BooleanProperty WATTLE_WOVEN = BooleanProperty.create("woven");
+    public static final BooleanProperty CLOCK_MONTH_MODE = BooleanProperty.create("clock_month_mode");
+    public static final BooleanProperty THERMOMETER_ATTACHED = BooleanProperty.create("thermometer_attached");
 
     public static final IntegerProperty PIT_KILN_STAGE = IntegerProperty.create("stage", 0, 16);
     public static final IntegerProperty HEAT_LEVEL = IntegerProperty.create("heat_level", 0, 7);
 
     public static final EnumProperty<Flow> FLOW = EnumProperty.create("flow", Flow.class);
     public static final BooleanProperty MIRROR = BooleanProperty.create("mirror");
+    public static final BooleanProperty ATTACHED_WIND_DEVICES = BooleanProperty.create("attached_wind_devices");
 
     private static final IntegerProperty[] STAGES = {STAGE_1, STAGE_2, STAGE_3, STAGE_4, STAGE_5, STAGE_6, STAGE_7, STAGE_8, STAGE_9, STAGE_10, STAGE_11, STAGE_12};
     private static final IntegerProperty[] AGES = {AGE_1, AGE_2, AGE_3, AGE_4, AGE_5, AGE_6, AGE_7, AGE_8};

@@ -45,14 +45,16 @@ public final class TFCBlockEntities
 
     public static final Id<FarmlandBlockEntity> FARMLAND = register("farmland", FarmlandBlockEntity::new, TFCBlocks.SOIL.get(SoilBlockType.FARMLAND).values().stream());
     public static final Id<PileBlockEntity> PILE = register("pile", PileBlockEntity::new, Stream.of(TFCBlocks.ICE_PILE, TFCBlocks.SNOW_PILE));
-    public static final Id<FirepitBlockEntity> FIREPIT = register("firepit", FirepitBlockEntity::new, TFCBlocks.FIREPIT);
+    public static final Id<FirepitBlockEntity> FIREPIT = register("firepit", FirepitBlockEntity::new, Stream.of(TFCBlocks.FIREPIT, TFCBlocks.STOVE));
     public static final Id<GrillBlockEntity> GRILL = register("grill", GrillBlockEntity::new, TFCBlocks.GRILL);
-    public static final Id<PotBlockEntity> POT = register("pot", PotBlockEntity::new, TFCBlocks.POT);
+    public static final Id<PotBlockEntity> POT = register("pot", PotBlockEntity::new, Stream.of(TFCBlocks.POT, TFCBlocks.STOVE_POT));
     public static final Id<BowlBlockEntity> BOWL = register("bowl", BowlBlockEntity::new, Stream.of(TFCBlocks.CERAMIC_BOWL, TFCBlocks.WOODEN_BOWL));
     public static final Id<HotPouredGlassBlockEntity> HOT_POURED_GLASS = register("hot_poured_glass", HotPouredGlassBlockEntity::new, TFCBlocks.HOT_POURED_GLASS);
     public static final Id<GlassBasinBlockEntity> GLASS_BASIN = register("glass_basin", GlassBasinBlockEntity::new, TFCBlocks.GLASS_BASIN);
     public static final Id<ShelfBlockEntity> SHELF = register("shelf", ShelfBlockEntity::new, Stream.concat(Stream.of(TFCBlocks.FIRE_BRICK_SHELF), woodBlocks(Wood.BlockType.SHELF)));
     public static final Id<FireboxBlockEntity> FIREBOX = register("firebox", FireboxBlockEntity::new, TFCBlocks.FIREBOX);
+    public static final Id<CalendarClockBlockEntity> CALENDAR_CLOCK = register("calendar_clock", CalendarClockBlockEntity::new, TFCBlocks.CALENDAR_CLOCK);
+    public static final Id<ThermometerBlockEntity> THERMOMETER = register("thermometer", ThermometerBlockEntity::new, TFCBlocks.THERMOMETER);
 
     public static final Id<TickCounterBlockEntity> TICK_COUNTER = register("tick_counter", TickCounterBlockEntity::new, Stream.of(
             woodBlocks(Wood.BlockType.SAPLING),
@@ -144,8 +146,11 @@ public final class TFCBlockEntities
     public static final Id<WaterWheelBlockEntity> WATER_WHEEL = register("water_wheel", WaterWheelBlockEntity::new, woodBlocks(Wood.BlockType.WATER_WHEEL));
     public static final Id<CrankshaftBlockEntity> CRANKSHAFT = register("crankshaft", CrankshaftBlockEntity::new, TFCBlocks.CRANKSHAFT);
     public static final Id<TripHammerBlockEntity> TRIP_HAMMER = register("trip_hammer", TripHammerBlockEntity::new, TFCBlocks.TRIP_HAMMER);
+    public static final Id<VaneBlockEntity> VANE = register("vane", VaneBlockEntity::new, TFCBlocks.VANE);
+    public static final Id<AnemometerBlockEntity> ANEMOMETER = register("anemometer", AnemometerBlockEntity::new, TFCBlocks.ANEMOMETER);
+
     public static final Id<PumpBlockEntity> PUMP = register("pump", PumpBlockEntity::new, TFCBlocks.STEEL_PUMP);
-    public static final Id<MoldBlockEntity> MOLD_TABLE = register("mold_table", MoldBlockEntity::new, TFCBlocks.MOLD_TABLE);
+    public static final Id<MoldTableBlockEntity> MOLD_TABLE = register("mold_table", MoldTableBlockEntity::new, TFCBlocks.MOLD_TABLE);
     public static final Id<ChannelBlockEntity> CHANNEL = register("channel", ChannelBlockEntity::new, TFCBlocks.CHANNEL);
 
     private static <T extends BlockEntity> Id<T> register(String name, BlockEntityType.BlockEntitySupplier<T> factory, Supplier<? extends Block> block)
